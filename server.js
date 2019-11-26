@@ -4,6 +4,7 @@ const app = express()
 const multer = require('multer');
 
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use('/static', express.static(path.join(__dirname, 'uploads')))
 
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
