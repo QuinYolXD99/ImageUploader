@@ -1,67 +1,61 @@
-const express = require('express');
+const express = require('express')
+const bodyParser = require('body-parser')
+const app = express()
 const multer = require('multer');
-const path = require('path');
 
-// Configure Multer
-const storage = multer.diskStorage({
-  destination: './public/uploads/',
-  filename: function(req, file, cb){
-    cb(null,file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  }
-});
+app.use(bodyParser.urlencoded({ extended: true }))
 
-//  Upload
-const upload = multer({
-  storage: storage,
-  limits:{fileSize: 1000000},
-  fileFilter: function(req, file, cb){
-    checkFileType(file, cb);
-  }
-}).single('myImage');
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads')
+    },
+    filename: function (req, file, cb) {
+        var filename = "uploads_" + file.originalname
+        cb(null, filename)
+    }
+})
 
-// Check File Type
-function checkFileType(file, cb){
-  // Allowed ext
-  const filetypes = /jpeg|jpg|png|gif/;
-  // Check ext
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  // Check mime
-  const mimetype = filetypes.test(file.mimetype);
+var upload = multer({ storage: storage })
 
-  if(mimetype && extname){
-    return cb(null,true);
-  } else {
-    cb('Error: Images Only!');
-  }
+// function to save image url  to mongodb
+let store = (filename) => {
+    //your servername + filename
+    var imgUrl = 'http://localhost:3000/static/uploads/' + filename; //save this to db  
 }
 
-const app = express();
+// note 'img' in upload is the key you use in FormData in frontend
+//e.g : var data =  new FormData()
+// data.append('img' ,uploadedFiles)
 
-// Public Folder
-app.use(express.static('./public'));
-
-
-app.post('/upload', (req, res) => {
-  upload(req, res, (err) => {
-    if(err){
-      res.render('index', {
-        msg: err
-      });
+app.post('/uploadMultiple', upload.array('img', 10), (req, res, next) => {
+    const imgs = req.files
+    if (!imgs) {
+        const error = new Error('Please upload a file')
+        error.httpStatusCode = 400
+        return next(error)
     } else {
-      if(req.file == undefined){
-        res.render('index', {
-          msg: 'Error: No File Selected!'
-        });
-      } else {
-        res.semd({
-          msg: 'File Uploaded!',
-          file: `localhost:3000/public/uploads/${req.file.filename}`
-        });
-      }
+        imgs.map(img => {
+            store(img.filename)
+        })
+        res.send("success")
     }
-  });
-});
+})
 
-const port = 3000;
+app.post('/uploadSingle', upload.single('img'), (req, res, next) => {
+    const img = req.file
+    if (!img) {
+        const error = new Error('Please select a file')
+        error.httpStatusCode = 400
+        return next(error)
+    }
+    else {
+        store(img.filename)
+        res.send("success")
+    }
+})
 
-app.listen(port, () => console.log(`Server started on port ${port}`));
+app.listen(3000, () => {
+    console.log(`server running at ${3000}`);
+})
+
+
