@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
 const multer = require('multer');
+const path = require('path');
 
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use('/static', express.static(path.join(__dirname, 'uploads')))
